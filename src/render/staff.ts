@@ -394,9 +394,9 @@ export function renderStaff(b: StaffBlock, ctx: RenderCtx): Rendered {
   }
   let h = totalH * S;
   if (b.note.trim()) {
-    const ls = wrap(b.note, ctx.width - x0, 9.5, true, true);
+    const ls = wrap(b.note.toUpperCase(), ctx.width - x0 - 2, 9.5, true, true);
     ls.forEach((l, i) => {
-      out += text(x0, h + 6 + i * 12, l.toUpperCase(), 9.5, { bold: true, italic: true, fill: '#333' });
+      out += text(x0, h + 6 + i * 12, l, 9.5, { bold: true, italic: true, fill: '#333' });
     });
     h += ls.length * 12 + 4;
   }

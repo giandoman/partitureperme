@@ -179,7 +179,7 @@ export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
   const gridW = W - x0 - repW;
   // nei blocchi stretti riduco le battute per riga per tenere leggibili gli accordi
   const maxChords = Math.max(1, ...b.bars.map((x) => x.chords.length));
-  const minBar = 38 + 34 * Math.max(0, maxChords - 1);
+  const minBar = 10 + 29 * maxChords;
   const per = Math.max(1, Math.min(8, b.barsPerLine || 4, Math.floor(gridW / minBar)));
   const bw = gridW / per;
 
@@ -262,9 +262,9 @@ export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
     y = bot + 6;
   });
   if (b.note.trim()) {
-    const lines = wrap(b.note, W - x0, 9.5, true, true);
+    const lines = wrap(b.note.toUpperCase(), W - x0, 9.5, true, true);
     lines.forEach((l, i) => {
-      out += text(x0, y + 9 + i * 12, l.toUpperCase(), 9.5, { bold: true, italic: true, fill: '#333' });
+      out += text(x0, y + 9 + i * 12, l, 9.5, { bold: true, italic: true, fill: '#333' });
     });
     y += lines.length * 12 + 3;
   }
