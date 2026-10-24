@@ -4,7 +4,7 @@ import { spellingForKey } from '../chords';
 import { Block, blockFrac, Song } from '../model';
 import { renderHeader } from './blocks';
 import { renderCached } from './cache';
-import { badgeWidth, r, RenderCtx, Selection, text } from './util';
+import { badgeWidth, r, RenderCtx, rowOffsets, Selection, text } from './util';
 
 export const PAGE_W = 595.28;
 export const PAGE_H = 841.89;
@@ -137,14 +137,14 @@ function paginate(song: Song, preset: Preset, scale: number) {
       continue;
     }
     const rendered = row.map((c) => ({ c, rd: renderCached(c.block, { ...ctx, width: c.w }) }));
-    const h = Math.max(...rendered.map((x) => x.rd.height));
+    const { offsets, height: h } = rowOffsets(rendered.map((x) => x.rd));
     totalH += h + BLOCK_GAP;
     if (y > 0 && y + h > availH) {
       pages.push([]);
       y = 0;
     }
-    for (const { c, rd } of rendered) {
-      pages[pages.length - 1].push({ svg: rd.svg, x: c.x, y, height: rd.height, blockId: c.block.id });
+    for (const [i, { c, rd }] of rendered.entries()) {
+      pages[pages.length - 1].push({ svg: rd.svg, x: c.x, y: y + offsets[i], height: rd.height, blockId: c.block.id });
       pageOf[c.block.id] = pages.length - 1;
     }
     y += h + BLOCK_GAP;

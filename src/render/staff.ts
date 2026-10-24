@@ -402,5 +402,5 @@ export function renderStaff(b: StaffBlock, ctx: RenderCtx): Rendered {
     });
     h += ls.length * 12 + 4;
   }
-  return { svg: out, height: h + 2, hits: { measures: hitsM, events: hitsE } };
+  return { svg: out, height: h + 2, anchor: (staffYs[0] + 2 * SPACE) * S, hits: { measures: hitsM, events: hitsE } };
 }

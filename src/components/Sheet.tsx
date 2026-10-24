@@ -8,7 +8,7 @@ import { Block, blockFrac, Song, StaffBlock } from '../model';
 import { renderHeader } from '../render/blocks';
 import { renderCached } from '../render/cache';
 import { LaidOut, PAGE_W, rowsOf } from '../render/layout';
-import type { HitEvent, HitMeasure, RenderCtx, Selection } from '../render/util';
+import { HitEvent, HitMeasure, RenderCtx, rowOffsets, Selection } from '../render/util';
 
 export interface SheetProps {
   song: Song;
@@ -36,7 +36,7 @@ function svgPoint(e: MouseEvent<SVGSVGElement>) {
   return m ? pt.matrixTransform(m.inverse()) : pt;
 }
 
-function BlockCard({ b, p, w, frac }: { b: Block; p: SheetProps; w: number; frac: number }) {
+function BlockCard({ b, p, w, frac, offset = 0 }: { b: Block; p: SheetProps; w: number; frac: number; offset?: number }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: b.id });
   const bctx = useMemo(() => ({ ...p.ctx, width: w }), [p.ctx, w]);
   const rd = renderCached(b, bctx);
@@ -77,7 +77,7 @@ function BlockCard({ b, p, w, frac }: { b: Block; p: SheetProps; w: number; frac
     <div
       ref={setNodeRef}
       className={'card' + (selected ? ' selected' : '') + (isDragging ? ' dragging' : '') + ' t-' + b.type}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={{ transform: CSS.Transform.toString(transform), transition, marginTop: offset || undefined }}
       data-frac={frac}
       onClick={(e) => {
         e.stopPropagation();
@@ -181,8 +181,10 @@ export default function Sheet(p: SheetProps) {
                   pagina {pg + 1}
                 </div>,
               );
+            const { offsets } =
+              row.length > 1 ? rowOffsets(row.map((c) => renderCached(c.block, { ...p.ctx, width: c.w }))) : { offsets: [0] };
             row.forEach((c, i) => {
-              els.push(<BlockCard key={c.block.id} b={c.block} p={p} w={c.w} frac={blockFrac(c.block)} />);
+              els.push(<BlockCard key={c.block.id} b={c.block} p={p} w={c.w} frac={blockFrac(c.block)} offset={offsets[i] * p.px} />);
               if (i < row.length - 1) els.push(<div key={'g' + c.block.id} className="col-gap" style={{ width: 14 * p.px }} />);
             });
             els.push(<div key={'br' + row[0].block.id} className="row-break" />);

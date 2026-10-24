@@ -80,7 +80,7 @@ export function renderSection(b: SectionBlock, ctx: RenderCtx): Rendered {
     x += textWidth(b.text, 13, true) + 10;
   }
   if (x < ctx.width) out += line(x, cy, ctx.width, cy, 1, '#000');
-  return { svg: out, height: 32 };
+  return { svg: out, height: 32, anchor: 16 };
 }
 
 // ---------- Avviso / cue ----------
@@ -197,11 +197,13 @@ export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
 
   let out = '';
   let y = 0;
+  let anchor: number | undefined;
   rows.forEach((row, ri) => {
     const hasTop = row.some((bar) => bar.cue || bar.volta);
     const top = y + (hasTop ? 13 : 2);
     const bot = top + ROW_H - 6;
     const cy = (top + bot) / 2;
+    if (anchor === undefined) anchor = cy;
     if (ri === 0 && b.label) out += badge(0, cy, b.label.toUpperCase(), Math.min(badgeWidth(b.label), x0 - 6));
 
     row.forEach((bar, i) => {
@@ -272,7 +274,7 @@ export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
     });
     y += lines.length * 12 + 3;
   }
-  return { svg: out, height: y + 1 };
+  return { svg: out, height: y + 1, anchor };
 }
 
 export function renderSpacer(h: number): Rendered {

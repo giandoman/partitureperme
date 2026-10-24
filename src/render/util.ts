@@ -42,7 +42,18 @@ export interface HitEvent {
 export interface Rendered {
   svg: string; // contenuto SVG (senza tag <svg>) con origine in alto a sinistra
   height: number;
+  /** y della linea di riferimento della prima riga musicale (per allineare i blocchi affiancati) */
+  anchor?: number;
   hits?: { measures: HitMeasure[]; events: HitEvent[] };
+}
+
+/** Spostamenti verticali per allineare i blocchi di una riga sulla loro linea di riferimento */
+export function rowOffsets(items: Rendered[]): { offsets: number[]; height: number } {
+  const anchors = items.map((r) => r.anchor).filter((a): a is number => a !== undefined);
+  const maxA = anchors.length > 1 ? Math.max(...anchors) : 0;
+  const offsets = items.map((r) => (anchors.length > 1 && r.anchor !== undefined ? maxA - r.anchor : 0));
+  const height = Math.max(...items.map((r, i) => r.height + offsets[i]));
+  return { offsets, height };
 }
 
 export function esc(s: string): string {
