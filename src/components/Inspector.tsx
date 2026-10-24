@@ -317,7 +317,7 @@ function GridText({ b, upd }: { b: ChordsBlock; upd: Upd }) {
   return (
     <Field
       label="Scrittura rapida"
-      hint='| separa le battute · |: :| ritornello · % uguale · (4) pausa di 4 · 1. 2. volte · "STOP" nota · x4 in fondo · a capo = nuova riga'
+      hint='| separa le battute · |: :| ritornello · % uguale · (4) pausa di 4 · 1. 2. volte · "STOP" nota sopra · [parole] testo sotto · x4 in fondo · a capo = nuova riga'
     >
       <textarea className="mono" rows={4} value={txt} spellCheck={false} onChange={(e) => change(e.target.value)} />
     </Field>
@@ -391,6 +391,9 @@ function ChordsForm({ b, upd, sel, setSel }: { b: ChordsBlock; upd: Upd; sel?: S
                 <Num value={bar.rest || 0} min={0} max={64} onChange={(v) => updBar((x) => (x.rest = v || undefined))} />
               </Field>
             </div>
+            <Field label="Testo sotto la battuta" hint="Le tue parole di riferimento (nella scrittura rapida: [parole])">
+              <Text value={bar.lyric || ''} onChange={(v) => updBar((x) => (x.lyric = v || undefined), 'lyr' + bar.id)} placeholder="es. attacco voce" />
+            </Field>
             <Field label="Nota sopra la battuta">
               <Text value={bar.cue || ''} upper onChange={(v) => updBar((x) => (x.cue = v || undefined), 'cue' + bar.id)} placeholder="es. STOP" />
             </Field>

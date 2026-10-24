@@ -6,6 +6,7 @@
 //   (4)  pausa di 4 battute
 //   1.  2.  prima / seconda volta (all'inizio della battuta)
 //   "STOP"  nota sopra la battuta
+//   [parole]  testo sotto la battuta
 //   x4 (in fondo) ripetizioni; tutto ciò che segue è testo libero: "x4, x4, x3"
 //   a capo = nuova riga della griglia
 
@@ -14,7 +15,7 @@ import { Bar, newBar } from './model';
 
 function tokenize(line: string): string[] {
   const out: string[] = [];
-  const re = /"[^"]*"|\|:|:\||\||[^\s|"]+/g;
+  const re = /"[^"]*"|\[[^\]]*\]|\|:|:\||\||[^\s|"\[]+/g;
   let m: RegExpExecArray | null;
   const prepared = line.replace(/:\|/g, ' :| ').replace(/\|:/g, ' |: ');
   while ((m = re.exec(prepared))) out.push(m[0]);
@@ -79,6 +80,7 @@ export function parseGrid(text: string): { bars: Bar[]; repeat: string } {
       else if (/^\(\d+\)$/.test(t)) b.rest = parseInt(t.slice(1), 10);
       else if (/^\d\.$/.test(t)) b.volta = t;
       else if (t.startsWith('"')) b.cue = t.replace(/"/g, '');
+      else if (t.startsWith('[')) b.lyric = t.slice(1, -1).trim() || undefined;
       else if (b.chords.length < 4) b.chords.push(displayChord(t));
     }
     close();
@@ -90,6 +92,7 @@ function barContent(b: Bar): string {
   const parts: string[] = [];
   if (b.volta) parts.push(b.volta);
   if (b.cue) parts.push(`"${b.cue}"`);
+  if (b.lyric) parts.push(`[${b.lyric}]`);
   if (b.rest) parts.push(`(${b.rest})`);
   else if (b.simile) parts.push('%');
   else parts.push(...b.chords);

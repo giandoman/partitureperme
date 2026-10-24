@@ -252,6 +252,10 @@ export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
       } else if (editing) {
         out += text(innerL + innerW / 2, cy + 4, '·', 14, { anchor: 'middle', fill: '#bbb' });
       }
+      if (bar.lyric) {
+        const sz = fitSize(bar.lyric, bw - 8, 9.5, false, 6);
+        out += text(bx + 5, bot + 11, bar.lyric, sz, { italic: true, fill: '#222' });
+      }
       if (editing)
         out += `<rect x="${r(bx)}" y="${r(top - 4)}" width="${r(bw)}" height="${r(bot - top + 8)}" fill="transparent" data-bar="${esc(bar.id)}" style="cursor:pointer"/>`;
     });
@@ -259,7 +263,7 @@ export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
       const ex = x0 + row.length * bw;
       out += text(ex + 8, cy + 5, rep, 14, { bold: true });
     }
-    y = bot + 6;
+    y = bot + 6 + (row.some((bar) => bar.lyric) ? 12 : 0);
   });
   if (b.note.trim()) {
     const lines = wrap(b.note.toUpperCase(), W - x0, 9.5, true, true);

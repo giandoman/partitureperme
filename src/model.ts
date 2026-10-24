@@ -43,6 +43,7 @@ export interface Bar {
   repeatEnd?: boolean;
   volta?: string;
   cue?: string; // annotazione sopra la battuta
+  lyric?: string; // testo di riferimento sotto la battuta
   newLine?: boolean; // va a capo prima di questa battuta
 }
 
