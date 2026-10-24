@@ -209,6 +209,8 @@ hr {
 }
 .check-row.compact {
   margin: 0;
+  white-space: nowrap;
+  font-size: 12.5px;
 }
 .row2 {
   display: grid;
