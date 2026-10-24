@@ -3,6 +3,7 @@ import { displayChord, pitchLabel } from '../chords';
 import {
   Bar,
   Block,
+  BlockWidth,
   ChordsBlock,
   CueBlock,
   Duration,
@@ -19,6 +20,8 @@ import {
 } from '../model';
 import type { Selection } from '../render/util';
 import { findEvent, NoteTool } from '../staffOps';
+import { parseNokia, serializeNokia } from '../nokia';
+import NoteIcon from './NoteIcon';
 import { parseGrid, serializeGrid } from '../syntax';
 
 type Update = (fn: (s: Song) => void, key?: string) => void;
@@ -183,6 +186,17 @@ function BlockPanel(p: Props & { block: Block }) {
           ✕
         </button>
       </div>
+      {block.type !== 'pagebreak' && (
+        <Field label="Larghezza" hint="I blocchi stretti consecutivi si mettono uno accanto all'altro">
+          <div className="seg">
+            {(['full', '1/2', '1/3', '2/3'] as BlockWidth[]).map((w) => (
+              <button type="button" key={w} className={(block.width || 'full') === w ? 'on' : ''} onClick={() => upd((x) => (x.width = w))}>
+                {w === 'full' ? 'Intera' : w}
+              </button>
+            ))}
+          </div>
+        </Field>
+      )}
       {block.type === 'section' && <SectionForm b={block} upd={upd} />}
       {block.type === 'chords' && <ChordsForm b={block} upd={upd} sel={p.sel} setSel={p.setSel} />}
       {block.type === 'staff' && <StaffForm {...p} b={block} upd={upd} />}
@@ -449,13 +463,67 @@ function ChordInput({ bar, onChange }: { bar: Bar; onChange: (c: string[]) => vo
 
 // ---------- pentagramma ----------
 
-const DURS: { d: Duration; label: string; title: string }[] = [
-  { d: 'w', label: '𝅝', title: 'Semibreve (1)' },
-  { d: 'h', label: '𝅗𝅥', title: 'Minima (2)' },
-  { d: 'q', label: '♩', title: 'Semiminima (3)' },
-  { d: '8', label: '♪', title: 'Croma (4)' },
-  { d: '16', label: '𝅘𝅥𝅯', title: 'Semicroma (5)' },
+export const DURS: { d: Duration; name: string; n: string }[] = [
+  { d: 'w', name: 'Semibreve', n: '1' },
+  { d: 'h', name: 'Minima', n: '2' },
+  { d: 'q', name: 'Semiminima', n: '4' },
+  { d: '8', name: 'Croma', n: '8' },
+  { d: '16', name: 'Semicroma', n: '16' },
+  { d: '32', name: 'Biscroma', n: '32' },
 ];
+
+export function toolLabel(t: NoteTool): string {
+  const d = DURS.find((x) => x.d === t.dur)!;
+  return (t.rest ? 'Pausa di ' + d.name.toLowerCase() : d.name) + (t.dot ? ' puntata' : '') + (t.triplet ? ' in terzina' : '');
+}
+
+function NokiaText({ b, upd }: { b: StaffBlock; upd: Upd }) {
+  const serialized = serializeNokia(b.measures);
+  const [txt, setTxt] = useState(serialized);
+  const [errs, setErrs] = useState<string[]>([]);
+  const own = useRef(serialized);
+  useEffect(() => {
+    if (serialized !== own.current) {
+      own.current = serialized;
+      setTxt(serialized);
+      setErrs([]);
+    }
+  }, [serialized]);
+  const change = (v: string) => {
+    setTxt(v);
+    const r = parseNokia(v, b.measures);
+    setErrs(r.errors);
+    own.current = serializeNokia(r.measures);
+    upd((x: StaffBlock) => {
+      x.measures = r.measures;
+    }, 'nokia');
+  };
+  return (
+    <div className="subpanel nokia">
+      <h3>Scrittura rapida (stile Nokia)</h3>
+      <textarea className="mono" rows={4} value={txt} spellCheck={false} onChange={(e) => change(e.target.value)} />
+      {errs.length > 0 && <div className="error small">Non capisco: {errs.join('  ')}</div>}
+      <details className="help">
+        <summary>Come si scrive</summary>
+        <table>
+          <tbody>
+            <tr><td><code>4c1</code></td><td>semiminima DO (ottava 1 = dal DO centrale)</td></tr>
+            <tr><td><code>8#f1</code> <code>8eb1</code></td><td>croma FA# · croma MIb</td></tr>
+            <tr><td><code>2.g1</code></td><td>minima puntata</td></tr>
+            <tr><td><code>4-</code></td><td>pausa da 1/4</td></tr>
+            <tr><td><code>t8e2 t8g2 t8e2</code></td><td>terzina</td></tr>
+            <tr><td><code>4c1+e1+g1</code></td><td>accordo</td></tr>
+            <tr><td><code>4b1_</code></td><td>legata alla nota dopo</td></tr>
+            <tr><td><code>(8e2 8d2 8c2)</code></td><td>legatura di frase</td></tr>
+            <tr><td><code>"LA" 4a1</code></td><td>sigla sopra · <code>'la'</code> testo sotto</td></tr>
+            <tr><td><code>|</code> <code>|: :|</code> <code>=4</code></td><td>battuta · ritornello · pausa di 4 battute</td></tr>
+          </tbody>
+        </table>
+        <p className="muted small">Se ometti durata o ottava valgono quelle della nota precedente. Durate: 1 2 4 8 16 32.</p>
+      </details>
+    </div>
+  );
+}
 
 function StaffForm(p: Props & { b: StaffBlock; upd: Upd }) {
   const { b, upd, sel, setSel, tool, setTool, song } = p;
@@ -494,8 +562,15 @@ function StaffForm(p: Props & { b: StaffBlock; upd: Upd }) {
         </div>
         <div className="durs">
           {DURS.map((d) => (
-            <button type="button" key={d.d} title={d.title} className={'dur' + (tool.dur === d.d ? ' on' : '')} onClick={() => setTool({ dur: d.d })}>
-              {d.label}
+            <button
+              type="button"
+              key={d.d}
+              title={`${d.name} (${d.n})`}
+              className={'dur' + (tool.dur === d.d ? ' on' : '')}
+              onClick={() => setTool({ dur: d.d })}
+            >
+              <NoteIcon dur={d.d} rest={tool.rest} size={26} />
+              <small>{d.name}</small>
             </button>
           ))}
         </div>
@@ -529,11 +604,22 @@ function StaffForm(p: Props & { b: StaffBlock; upd: Upd }) {
             + accordo
           </button>
         </div>
+        <div className="now-inserting">
+          <NoteIcon dur={tool.dur} rest={tool.rest} size={30} />
+          <div>
+            <small className="muted">Stai inserendo</small>
+            <b>
+              {toolLabel(tool)}
+              {!tool.rest && tool.acc !== 0 ? (tool.acc > 0 ? ' con ♯' : ' con ♭') : ''}
+            </b>
+          </div>
+        </div>
         <p className="muted small">
-          Clic sul rigo = nuova nota. Clic su una nota = selezione. Frecce ↑↓ spostano la nota (Maiusc = ottava), ←→ cambiano nota, Canc
-          elimina, 1-5 durata.
+          Passa col mouse sul rigo: vedi la nota in grigio prima di cliccare. Clic su una nota = selezione. Frecce ↑↓ spostano la nota
+          (Maiusc = ottava), ←→ cambiano nota, Canc elimina, tasti 1-6 durata, L legatura.
         </p>
       </div>
+      <NokiaText b={b} upd={upd} />
 
       {ev && (
         <div className="subpanel">
@@ -552,7 +638,19 @@ function StaffForm(p: Props & { b: StaffBlock; upd: Upd }) {
           <Field label="Testo sotto">
             <Text value={ev.below || ''} upper onChange={(v) => updEv((x) => (x.below = v || undefined), 'evb' + ev.id)} />
           </Field>
-          <Check label="Legatura alla nota successiva" value={ev.tie} onChange={(v) => updEv((x) => (x.tie = v))} />
+          <Field label="Legature">
+            <div className="toggles">
+              <button type="button" className={'tgl' + (ev.tie ? ' on' : '')} onClick={() => updEv((x) => (x.tie = !x.tie))} title="Lega questa nota alla successiva (stessa altezza)">
+                ⁀ valore
+              </button>
+              <button type="button" className={'tgl' + (ev.slurStart ? ' on' : '')} onClick={() => updEv((x) => (x.slurStart = !x.slurStart || undefined))} title="La legatura di frase parte da qui">
+                ( inizio frase
+              </button>
+              <button type="button" className={'tgl' + (ev.slurEnd ? ' on' : '')} onClick={() => updEv((x) => (x.slurEnd = !x.slurEnd || undefined))} title="La legatura di frase finisce qui">
+                fine frase )
+              </button>
+            </div>
+          </Field>
           <div className="btn-row">
             {ev.keys.length > 1 && (
               <button className="btn small" onClick={() => updEv((x) => x.keys.pop())}>

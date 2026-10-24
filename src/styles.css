@@ -661,8 +661,24 @@ hr {
   border-radius: 2px;
   min-height: 400px;
 }
+.rows {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.row-break {
+  flex-basis: 100%;
+  height: 4px;
+}
+.col-gap {
+  flex: none;
+}
+.rows .page-marker {
+  flex-basis: calc(100% + 80px);
+}
 .card {
   position: relative;
+  flex: none;
   border-radius: 4px;
   margin: 0 -6px;
   padding: 3px 6px;
@@ -672,9 +688,6 @@ hr {
 .card + .card,
 .paper > div + div {
   margin-top: 0;
-}
-.paper > div:not(.header-card):not(.end-drop) {
-  margin-bottom: 4px;
 }
 .card:hover {
   outline-color: #d8d2c4;
@@ -725,6 +738,13 @@ hr {
 }
 .card-tools button:hover {
   background: #3a3c42;
+}
+.card-tools .wbtn {
+  width: auto;
+  min-width: 24px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
 }
 .card-tools .handle {
   cursor: grab;
@@ -799,15 +819,85 @@ hr {
   gap: 4px;
   margin: 10px 0 6px;
 }
+.durs {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+}
 .dur {
-  flex: 1;
-  height: 40px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 4px 2px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  color: var(--text);
+}
+.dur small {
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.now-inserting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  padding: 6px 10px;
+  margin: 8px 0;
+}
+.now-inserting > div {
+  display: flex;
+  flex-direction: column;
+}
+.nokia textarea {
+  width: 100%;
   border: 1px solid var(--line);
   background: var(--panel);
   border-radius: 7px;
-  font-size: 22px;
+  padding: 7px 9px;
+  font-size: 13px;
+  resize: vertical;
+}
+.nokia textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.help summary {
   cursor: pointer;
-  line-height: 1;
+  font-size: 12.5px;
+  color: var(--accent);
+  margin: 6px 0;
+}
+.help table {
+  font-size: 12px;
+  border-collapse: collapse;
+  width: 100%;
+}
+.help td {
+  padding: 3px 4px;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+}
+.help code {
+  font-family: ui-monospace, Menlo, monospace;
+  background: var(--panel-2);
+  padding: 0 3px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.ghost-wrap {
+  position: relative;
+}
+.ghost-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  overflow: visible;
 }
 .dur.on,
 .tgl.on {

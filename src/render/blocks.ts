@@ -173,11 +173,14 @@ function barlineSvg(x: number, top: number, bot: number, kind: 'thin' | 'start' 
 export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
   const W = ctx.width;
   const editing = ctx.editing;
-  const per = Math.max(1, Math.min(8, b.barsPerLine || 4));
   const rep = prettyRepeat(b.repeat || '').trim();
   const repW = rep ? textWidth(rep, 14, true) + 12 : 0;
   const x0 = ctx.labelCol;
   const gridW = W - x0 - repW;
+  // nei blocchi stretti riduco le battute per riga per tenere leggibili gli accordi
+  const maxChords = Math.max(1, ...b.bars.map((x) => x.chords.length));
+  const minBar = 38 + 34 * Math.max(0, maxChords - 1);
+  const per = Math.max(1, Math.min(8, b.barsPerLine || 4, Math.floor(gridW / minBar)));
   const bw = gridW / per;
 
   // righe
@@ -243,7 +246,7 @@ export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
         const slot = innerW / n;
         bar.chords.forEach((c, k) => {
           const label = displayChord(c, ctx.transpose, ctx.sp);
-          const sz = fitSize(label, slot - 3, CHORD_SIZE, true, 8);
+          const sz = fitSize(label, slot - 7, CHORD_SIZE, true, 9);
           out += text(innerL + k * slot, cy + sz * 0.36, label, sz, { bold: true });
         });
       } else if (editing) {

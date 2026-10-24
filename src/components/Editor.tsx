@@ -13,7 +13,7 @@ import { AuthError, clearDraft, getDraft, getSong, saveDraft, saveSong } from '.
 import { go } from '../App';
 import { transposeLabel } from '../chords';
 import { downloadText, safeName } from '../download';
-import { Block, cloneWithNewIds, Duration, newBar, newMeasure, Song, StaffBlock } from '../model';
+import { Block, BlockWidth, cloneWithNewIds, Duration, newBar, newMeasure, Song, StaffBlock } from '../model';
 import { layoutSong, makeCtx, PresetId } from '../render/layout';
 import { exportPdf } from '../render/pdf';
 import type { HitEvent, HitMeasure, Selection } from '../render/util';
@@ -197,6 +197,14 @@ function EditorInner({ initial, restored }: { initial: Song; restored: boolean }
       }
     });
 
+  const onCycleWidth = (bid: string) =>
+    touch((s) => {
+      const b = s.blocks.find((x) => x.id === bid);
+      if (!b) return;
+      const order: BlockWidth[] = ['full', '1/2', '1/3', '2/3'];
+      b.width = order[(order.indexOf(b.width || 'full') + 1) % order.length];
+    });
+
   // ---------- pentagramma ----------
   const setTool = (p: Partial<NoteTool>) => {
     setToolState((t) => ({ ...t, ...p }));
@@ -295,8 +303,18 @@ function EditorInner({ initial, restored }: { initial: Song; restored: boolean }
         else setSel(undefined);
         return;
       }
-      if (!sel?.eventId) return;
-      const b = song.blocks.find((x) => x.id === sel.blockId);
+      const toolKeys: Record<string, Duration> = { '1': 'w', '2': 'h', '3': 'q', '4': '8', '5': '16', '6': '32' };
+      const selBlock = sel ? song.blocks.find((x) => x.id === sel.blockId) : undefined;
+      if (!sel?.eventId) {
+        if (selBlock?.type === 'staff') {
+          if (toolKeys[e.key]) setTool({ dur: toolKeys[e.key] });
+          else if (e.key === '.') setTool({ dot: !tool.dot });
+          else if (e.key.toLowerCase() === 'r') setTool({ rest: !tool.rest });
+          else if (e.key.toLowerCase() === 't') setTool({ triplet: !tool.triplet });
+        }
+        return;
+      }
+      const b = selBlock;
       if (!b || b.type !== 'staff') return;
       const f = findEvent(b, sel.eventId);
       if (!f) return;
@@ -308,7 +326,7 @@ function EditorInner({ initial, restored }: { initial: Song; restored: boolean }
         });
       const flat = b.measures.flatMap((m) => m.events.map((ev) => ({ ev, m })));
       const idx = flat.findIndex((x) => x.ev.id === sel.eventId);
-      const durKeys: Record<string, Duration> = { '1': 'w', '2': 'h', '3': 'q', '4': '8', '5': '16' };
+      const durKeys: Record<string, Duration> = { '1': 'w', '2': 'h', '3': 'q', '4': '8', '5': '16', '6': '32' };
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
         if (song.transpose) return;
@@ -551,6 +569,9 @@ function EditorInner({ initial, restored }: { initial: Song; restored: boolean }
               onDelete={onDelete}
               onDuplicate={onDuplicate}
               onResize={onResize}
+              onCycleWidth={onCycleWidth}
+              tool={tool}
+              insertMode={insertMode}
             />
           </div>
           <Inspector

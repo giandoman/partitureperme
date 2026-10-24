@@ -1,7 +1,7 @@
 // Impaginazione: blocchi -> pagine A4 (anteprima e PDF usano lo stesso risultato)
 
 import { spellingForKey } from '../chords';
-import type { Song } from '../model';
+import { Block, blockFrac, Song } from '../model';
 import { renderHeader } from './blocks';
 import { renderCached } from './cache';
 import { badgeWidth, r, RenderCtx, Selection, text } from './util';
@@ -47,7 +47,8 @@ export function makeCtx(song: Song, width: number, editing: boolean, sel?: Selec
 
 export interface PageItem {
   svg: string;
-  y: number; // in unità di contenuto
+  x: number; // in unità di contenuto
+  y: number;
   height: number;
   blockId?: string;
 }
@@ -78,6 +79,41 @@ export function layoutSong(song: Song, presetId: PresetId, fitOnePage = false): 
   return { pages: result.pages, scale, contentW: result.contentW, preset, pageOf: result.pageOf };
 }
 
+export const COL_GAP = 14;
+
+export interface RowCell {
+  block: Block;
+  x: number;
+  w: number;
+}
+
+/** Raggruppa i blocchi in righe: blocchi stretti consecutivi si affiancano se c'è spazio */
+export function rowsOf(blocks: Block[], contentW: number): RowCell[][] {
+  const rows: RowCell[][] = [];
+  let cur: RowCell[] = [];
+  let sum = 0;
+  const flush = () => {
+    if (cur.length) rows.push(cur);
+    cur = [];
+    sum = 0;
+  };
+  for (const b of blocks) {
+    const f = blockFrac(b);
+    if (b.type === 'pagebreak' || f >= 0.999) {
+      flush();
+      rows.push([{ block: b, x: 0, w: contentW }]);
+      continue;
+    }
+    if (sum + f > 1.001) flush();
+    const w = f * (contentW + COL_GAP) - COL_GAP;
+    const x = sum * (contentW + COL_GAP);
+    cur.push({ block: b, x, w });
+    sum += f;
+  }
+  flush();
+  return rows;
+}
+
 function paginate(song: Song, preset: Preset, scale: number) {
   const contentW = (PAGE_W - 2 * preset.margin) / scale;
   const availH = (PAGE_H - 2 * preset.margin - 14) / scale; // 14pt per il piè di pagina
@@ -87,27 +123,31 @@ function paginate(song: Song, preset: Preset, scale: number) {
   let y = 0;
   let totalH = 0;
   const head = renderHeader(ctx);
-  pages[0].push({ svg: head.svg, y: 0, height: head.height });
+  pages[0].push({ svg: head.svg, x: 0, y: 0, height: head.height });
   y = head.height + BLOCK_GAP + 4;
   totalH = y;
-  for (const b of song.blocks) {
-    if (b.type === 'pagebreak') {
+  for (const row of rowsOf(song.blocks, contentW)) {
+    const first = row[0].block;
+    if (first.type === 'pagebreak') {
       if (pages[pages.length - 1].length) {
         pages.push([]);
         y = 0;
       }
-      pageOf[b.id] = pages.length - 1;
+      pageOf[first.id] = pages.length - 1;
       continue;
     }
-    const rd = renderCached(b, ctx);
-    totalH += rd.height + BLOCK_GAP;
-    if (y > 0 && y + rd.height > availH) {
+    const rendered = row.map((c) => ({ c, rd: renderCached(c.block, { ...ctx, width: c.w }) }));
+    const h = Math.max(...rendered.map((x) => x.rd.height));
+    totalH += h + BLOCK_GAP;
+    if (y > 0 && y + h > availH) {
       pages.push([]);
       y = 0;
     }
-    pages[pages.length - 1].push({ svg: rd.svg, y, height: rd.height, blockId: b.id });
-    pageOf[b.id] = pages.length - 1;
-    y += rd.height + BLOCK_GAP;
+    for (const { c, rd } of rendered) {
+      pages[pages.length - 1].push({ svg: rd.svg, x: c.x, y, height: rd.height, blockId: c.block.id });
+      pageOf[c.block.id] = pages.length - 1;
+    }
+    y += h + BLOCK_GAP;
   }
   return { pages, contentW, pageOf, totalH };
 }
@@ -121,7 +161,7 @@ export function pageSvg(lo: LaidOut, idx: number, song: Song): string {
   for (const it of lo.pages[idx]) {
     // blocco più alto della pagina: lo rimpicciolisco per farlo stare
     const fit = it.height > availH ? availH / it.height : 1;
-    body += `<g transform="translate(${r(m)},${r(m + it.y * scale)}) scale(${r(scale * fit)})">${it.svg}</g>`;
+    body += `<g transform="translate(${r(m + it.x * scale)},${r(m + it.y * scale)}) scale(${r(scale * fit)})">${it.svg}</g>`;
   }
   if (lo.pages.length > 1) {
     const label = `${(song.title || '').toUpperCase()}  ·  ${idx + 1}/${lo.pages.length}`;

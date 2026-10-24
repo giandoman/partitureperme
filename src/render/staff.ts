@@ -5,6 +5,7 @@ import {
   Annotation,
   BarlineType,
   Beam,
+  Curve,
   Dot,
   Formatter,
   MultiMeasureRest,
@@ -36,7 +37,7 @@ const diat = (p: Pitch) => p.oct * 7 + STEP_IDX[p.step];
 const TOP_LINE = 38; // FA5
 const BOTTOM_LINE = 30; // MI4
 
-const EV_W: Record<string, number> = { w: 38, h: 32, q: 27, '8': 23, '16': 20 };
+const EV_W: Record<string, number> = { w: 38, h: 32, q: 27, '8': 23, '16': 21, '32': 21 };
 
 function naturalWidth(m: Measure): number {
   if (m.multiRest) return 110;
@@ -239,7 +240,7 @@ export function renderStaff(b: StaffBlock, ctx: RenderCtx): Rendered {
         // terzine (gruppi di 3)
         const tuplets: Tuplet[] = [];
         const beamGroups: StaveNote[][] = [];
-        const beamable = (e: NoteEvent) => !e.rest && (e.dur === '8' || e.dur === '16');
+        const beamable = (e: NoteEvent) => !e.rest && (e.dur === '8' || e.dur === '16' || e.dur === '32');
         let i = 0;
         let pos = 0;
         const beat = den === 8 && num % 3 === 0 ? 1.5 : den === 8 ? 0.5 : 1;
@@ -315,6 +316,22 @@ export function renderStaff(b: StaffBlock, ctx: RenderCtx): Rendered {
     flushOtt();
 
     y = yStaff + 4 * SPACE + info.bottom;
+  });
+
+  // legature di frase
+  const open: Placed[] = [];
+  placed.forEach((p) => {
+    if (p.ev.slurStart) open.push(p);
+    if (p.ev.slurEnd && open.length) {
+      const st = open.pop()!;
+      if (st === p) return;
+      const opts = { cps: [{ x: 0, y: 14 }, { x: 0, y: 14 }] };
+      if (st.line === p.line) new Curve(st.note, p.note, opts).setContext(c).draw();
+      else {
+        new Curve(st.note, undefined as any, opts).setContext(c).draw();
+        new Curve(undefined as any, p.note, opts).setContext(c).draw();
+      }
+    }
   });
 
   // legature di valore

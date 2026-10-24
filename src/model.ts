@@ -1,6 +1,6 @@
 // Modello dati di un brano (salvato come JSON)
 
-export type Duration = 'w' | 'h' | 'q' | '8' | '16';
+export type Duration = 'w' | 'h' | 'q' | '8' | '16' | '32';
 
 /** Altezza di una nota: lettera, alterazione (-1 bemolle, 0 naturale, 1 diesis), ottava */
 export interface Pitch {
@@ -17,6 +17,8 @@ export interface NoteEvent {
   triplet: boolean;
   keys: Pitch[]; // vuoto se pausa
   tie: boolean; // legatura di valore verso l'evento successivo
+  slurStart?: boolean; // inizio legatura di frase
+  slurEnd?: boolean; // fine legatura di frase
   chord?: string; // sigla sopra la nota
   below?: string; // testo sotto la nota
 }
@@ -45,9 +47,19 @@ export interface Bar {
 
 export type BlockType = 'section' | 'chords' | 'staff' | 'cue' | 'roadmap' | 'pagebreak' | 'spacer';
 
+export type BlockWidth = 'full' | '1/2' | '1/3' | '2/3';
+
 interface BaseBlock {
   id: string;
   type: BlockType;
+  width?: BlockWidth; // affiancamento: se manca è a tutta larghezza
+}
+
+export const WIDTH_FRAC: Record<BlockWidth, number> = { full: 1, '1/2': 1 / 2, '1/3': 1 / 3, '2/3': 2 / 3 };
+
+export function blockFrac(b: { width?: BlockWidth; type: BlockType }): number {
+  if (b.type === 'pagebreak') return 1;
+  return WIDTH_FRAC[b.width || 'full'] ?? 1;
 }
 
 export interface SectionBlock extends BaseBlock {
@@ -214,7 +226,7 @@ export function summaryOf(s: Song): SongSummary {
   return { id: s.id, title: s.title, artist: s.artist, key: s.key, updatedAt: s.updatedAt };
 }
 
-export const DUR_QUARTERS: Record<Duration, number> = { w: 4, h: 2, q: 1, '8': 0.5, '16': 0.25 };
+export const DUR_QUARTERS: Record<Duration, number> = { w: 4, h: 2, q: 1, '8': 0.5, '16': 0.25, '32': 0.125 };
 
 export function eventLength(e: NoteEvent): number {
   let l = DUR_QUARTERS[e.dur];
