@@ -515,6 +515,7 @@ function NokiaText({ b, upd }: { b: StaffBlock; upd: Upd }) {
             <tr><td><code>4c1+e1+g1</code></td><td>accordo</td></tr>
             <tr><td><code>4b1_</code></td><td>legata alla nota dopo</td></tr>
             <tr><td><code>(8e2 8d2 8c2)</code></td><td>legatura di frase</td></tr>
+            <tr><td><code>1e2^</code></td><td>corona</td></tr>
             <tr><td><code>"LA" 4a1</code></td><td>sigla sopra · <code>'la'</code> testo sotto</td></tr>
             <tr><td><code>|</code> <code>|: :|</code> <code>=4</code></td><td>battuta · ritornello · pausa di 4 battute</td></tr>
           </tbody>
@@ -648,6 +649,11 @@ function StaffForm(p: Props & { b: StaffBlock; upd: Upd }) {
               </button>
               <button type="button" className={'tgl' + (ev.slurEnd ? ' on' : '')} onClick={() => updEv((x) => (x.slurEnd = !x.slurEnd || undefined))} title="La legatura di frase finisce qui">
                 fine frase )
+              </button>
+            </div>
+            <div className="toggles">
+              <button type="button" className={'tgl' + (ev.fermata ? ' on' : '')} onClick={() => updEv((x) => (x.fermata = !x.fermata || undefined))} title="Corona sulla nota">
+                𝄐 corona
               </button>
             </div>
           </Field>

@@ -5,6 +5,7 @@
 //   4-    pausa da 1/4     t8e2 t8g2 t8e2   terzina di crome
 //   4c1+e1+g1  accordo     4b1_  legata alla nota dopo
 //   (8e2 8d2 8c2)  legatura di frase      "LA" 4a1  sigla sopra   'la' 4a1  testo sotto
+//   1e2^  corona
 //   |  stanghetta          |: ... :|  ritornello          =4  pausa di 4 battute
 //
 // Se mancano durata o ottava si riprendono dalla nota precedente.
@@ -17,7 +18,7 @@ const DUR_TO_NUM: Record<Duration, string> = { w: '1', h: '2', q: '4', '8': '8',
 const OCT_BASE = 3; // ottava Nokia 1 = ottava scientifica 4
 
 const NOTE_RE = /^(#)?([a-g])(#|b)?(\d)?$/i;
-const TOKEN_RE = /^(\()?(t)?(16|32|1|2|4|8)?(\.)?(.*?)(_)?(\))?$/i;
+const TOKEN_RE = /^(\()?(t)?(16|32|1|2|4|8)?(\.)?(.*?)(_)?(\^)?(\))?$/i;
 
 function tokenize(text: string): string[] {
   const prepared = text
@@ -114,7 +115,7 @@ export function parseNokia(text: string, old: Measure[]): NokiaResult {
       errors.push(t);
       continue;
     }
-    const [, slurS, trip, d, dot, body, tie, slurE] = tm;
+    const [, slurS, trip, d, dot, body, tie, ferm, slurE] = tm;
     if (d) dur = NUM_TO_DUR[d];
     const ev: NoteEvent = {
       id: '',
@@ -127,6 +128,7 @@ export function parseNokia(text: string, old: Measure[]): NokiaResult {
     };
     if (slurS) ev.slurStart = true;
     if (slurE) ev.slurEnd = true;
+    if (ferm) ev.fermata = true;
     if (body === '-' || body.toLowerCase() === 'p') {
       ev.rest = true;
     } else {
@@ -176,6 +178,7 @@ export function eventToNokia(e: NoteEvent): string {
   if (e.rest) s += '-';
   else s += e.keys.map((k) => pitchText(k, true)).join('+');
   if (e.tie) s += '_';
+  if (e.fermata) s += '^';
   if (e.slurEnd) s += ')';
   return s;
 }

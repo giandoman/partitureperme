@@ -3,6 +3,7 @@
 import {
   Accidental,
   Annotation,
+  Articulation,
   BarlineType,
   Beam,
   Curve,
@@ -225,6 +226,7 @@ export function renderStaff(b: StaffBlock, ctx: RenderCtx): Rendered {
               }
             });
           if (ev.dot) Dot.buildAndAttach([n], { all: true });
+          if (ev.fermata) n.addModifier(new Articulation('a@a').setPosition(3), 0);
           if (ev.chord) chordMarks.push({ note: n, text: displayChord(ev.chord, ctx.transpose, ctx.sp), y: yStaff - info.zoneA - 5 });
           if (ev.below) {
             const a = new Annotation(ev.below.toUpperCase());

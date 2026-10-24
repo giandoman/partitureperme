@@ -19,6 +19,7 @@ export interface NoteEvent {
   tie: boolean; // legatura di valore verso l'evento successivo
   slurStart?: boolean; // inizio legatura di frase
   slurEnd?: boolean; // fine legatura di frase
+  fermata?: boolean; // corona
   chord?: string; // sigla sopra la nota
   below?: string; // testo sotto la nota
 }
