@@ -12,6 +12,7 @@
 
 import type { Duration, Measure, NoteEvent, Pitch } from './model';
 import { uid } from './model';
+import { displayChord, parseChord } from './chords';
 
 const NUM_TO_DUR: Record<string, Duration> = { '1': 'w', '2': 'h', '4': 'q', '8': '8', '16': '16', '32': '32' };
 const DUR_TO_NUM: Record<Duration, string> = { w: '1', h: '2', q: '4', '8': '8', '16': '16', '32': '32' };
@@ -98,7 +99,9 @@ export function parseNokia(text: string, old: Measure[]): NokiaResult {
     }
     lastWasBar = false;
     if (t.startsWith('"')) {
-      chord = t.slice(1, -1).trim().toUpperCase() || undefined;
+      const raw = t.slice(1, -1).trim();
+      // sigla d'accordo normalizzata (SIb-, non SIB-); testo libero in maiuscolo
+      chord = raw ? (parseChord(raw) ? displayChord(raw) : raw.toUpperCase()) : undefined;
       continue;
     }
     if (t.startsWith("'")) {
