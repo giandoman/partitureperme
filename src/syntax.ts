@@ -130,8 +130,12 @@ export function parseRoadLine(line: string): RoadStep[] {
     .filter(Boolean)
     .map((s) => {
       let repeat = '';
-      let rest = s.replace(/\s*[x×]\s?(\d+)\b/i, (_, n) => {
-        repeat = '×' + n;
+      // una o più ripetizioni: "x4", "x4, x4, x8", "x1/x2"
+      let rest = s.replace(/\s*[x×]\s?\d+(?:\s*[,/]\s*[x×]?\s?\d+)*\b/i, (m) => {
+        repeat = m
+          .trim()
+          .replace(/[x×]\s?/gi, '×')
+          .replace(/\s*,\s*/g, ', ');
         return ' ';
       });
       let sub = '';

@@ -178,9 +178,17 @@ export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
   const x0 = ctx.labelCol;
   const gridW = W - x0 - repW;
   // nei blocchi stretti riduco le battute per riga per tenere leggibili gli accordi
-  const maxChords = Math.max(1, ...b.bars.map((x) => x.chords.length));
-  const minBar = 10 + 29 * maxChords;
-  const per = Math.max(1, Math.min(8, b.barsPerLine || 4, Math.floor(gridW / minBar)));
+  // larghezza minima di una battuta: la battuta più "piena" deve restare leggibile (accordi ad almeno 11 pt)
+  const minBar = Math.max(
+    39,
+    ...b.bars.map((x) => 12 + x.chords.reduce((s, c) => s + textWidth(displayChord(c, ctx.transpose, ctx.sp), 11, true) + 8, 0)),
+  );
+  let per = Math.max(1, Math.min(8, b.barsPerLine || 4, Math.floor(gridW / minBar)));
+  // se le battute vanno a capo da sole, le distribuisco in righe equilibrate (niente battuta orfana)
+  if (b.bars.length > per && !b.bars.some((x, i) => i > 0 && x.newLine)) {
+    const nRows = Math.ceil(b.bars.length / per);
+    per = Math.ceil(b.bars.length / nRows);
+  }
   const bw = gridW / per;
 
   // righe
@@ -234,11 +242,15 @@ export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
       }
 
       if (bar.rest) {
-        const mw = Math.min(innerW * 0.7, 60);
-        const mx = innerL + (innerW - mw) / 2;
+        // con un'annotazione sopra, il numero delle battute va a destra della pausa per non sovrapporsi
+        const side = !!bar.cue;
+        const numW = side ? textWidth(String(bar.rest), 11, true) + 6 : 0;
+        const mw = Math.max(10, Math.min(innerW * 0.7, 60) - numW);
+        const mx = innerL + (innerW - mw - numW) / 2;
         out += rect(mx, cy - 3, mw, 6, 'fill="#000"');
         out += line(mx, cy - 7, mx, cy + 7, 1.4) + line(mx + mw, cy - 7, mx + mw, cy + 7, 1.4);
-        out += text(mx + mw / 2, cy - 7, String(bar.rest), 10, { bold: true, anchor: 'middle' });
+        if (side) out += text(mx + mw + 5, cy + 4, String(bar.rest), 11, { bold: true });
+        else out += text(mx + mw / 2, cy - 7, String(bar.rest), 10, { bold: true, anchor: 'middle' });
       } else if (bar.simile) {
         const cx = innerL + innerW / 2;
         out += line(cx - 6, cy + 7, cx + 6, cy - 7, 3);
@@ -248,7 +260,7 @@ export function renderChords(b: ChordsBlock, ctx: RenderCtx): Rendered {
         const slot = innerW / n;
         bar.chords.forEach((c, k) => {
           const label = displayChord(c, ctx.transpose, ctx.sp);
-          const sz = fitSize(label, slot - 7, CHORD_SIZE, true, 9);
+          const sz = fitSize(label, slot - 7, CHORD_SIZE, true, 8);
           out += text(innerL + k * slot, cy + sz * 0.36, label, sz, { bold: true });
         });
       } else if (editing) {

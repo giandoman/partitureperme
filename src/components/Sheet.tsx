@@ -7,7 +7,7 @@ import { hitTest, NoteTool, pitchAtY } from '../staffOps';
 import { Block, blockFrac, Song, StaffBlock } from '../model';
 import { renderHeader } from '../render/blocks';
 import { renderCached } from '../render/cache';
-import { LaidOut, PAGE_W, rowsOf } from '../render/layout';
+import { ctxForCell, LaidOut, PAGE_W, RowCell, rowsOf } from '../render/layout';
 import { HitEvent, HitMeasure, RenderCtx, rowOffsets, Selection } from '../render/util';
 
 export interface SheetProps {
@@ -36,9 +36,10 @@ function svgPoint(e: MouseEvent<SVGSVGElement>) {
   return m ? pt.matrixTransform(m.inverse()) : pt;
 }
 
-function BlockCard({ b, p, w, frac, offset = 0 }: { b: Block; p: SheetProps; w: number; frac: number; offset?: number }) {
+function BlockCard({ b, p, cell, index, frac, offset = 0 }: { b: Block; p: SheetProps; cell: RowCell; index: number; frac: number; offset?: number }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: b.id });
-  const bctx = useMemo(() => ({ ...p.ctx, width: w }), [p.ctx, w]);
+  const w = cell.w;
+  const bctx = useMemo(() => ctxForCell(p.ctx, cell, index), [p.ctx, cell, index]);
   const rd = renderCached(b, bctx);
   const selected = p.sel?.blockId === b.id;
   const W = w;
@@ -182,9 +183,9 @@ export default function Sheet(p: SheetProps) {
                 </div>,
               );
             const { offsets } =
-              row.length > 1 ? rowOffsets(row.map((c) => renderCached(c.block, { ...p.ctx, width: c.w }))) : { offsets: [0] };
+              row.length > 1 ? rowOffsets(row.map((c, i) => renderCached(c.block, ctxForCell(p.ctx, c, i)))) : { offsets: [0] };
             row.forEach((c, i) => {
-              els.push(<BlockCard key={c.block.id} b={c.block} p={p} w={c.w} frac={blockFrac(c.block)} offset={offsets[i] * p.px} />);
+              els.push(<BlockCard key={c.block.id} b={c.block} p={p} cell={c} index={i} frac={blockFrac(c.block)} offset={offsets[i] * p.px} />);
               if (i < row.length - 1) els.push(<div key={'g' + c.block.id} className="col-gap" style={{ width: 14 * p.px }} />);
             });
             els.push(<div key={'br' + row[0].block.id} className="row-break" />);

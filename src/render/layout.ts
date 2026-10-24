@@ -87,6 +87,14 @@ export interface RowCell {
   w: number;
 }
 
+/** Contesto di disegno di un blocco nella sua riga: i blocchi affiancati a destra senza etichetta
+ *  non riservano la colonna dei badge, così le battute hanno più spazio */
+export function ctxForCell(ctx: RenderCtx, c: RowCell, index: number): RenderCtx {
+  const label = (c.block as { label?: string }).label;
+  const labelCol = index > 0 && !(label && label.trim()) ? 0 : ctx.labelCol;
+  return { ...ctx, width: c.w, labelCol };
+}
+
 /** Raggruppa i blocchi in righe: blocchi stretti consecutivi si affiancano se c'è spazio */
 export function rowsOf(blocks: Block[], contentW: number): RowCell[][] {
   const rows: RowCell[][] = [];
@@ -136,7 +144,7 @@ function paginate(song: Song, preset: Preset, scale: number) {
       pageOf[first.id] = pages.length - 1;
       continue;
     }
-    const rendered = row.map((c) => ({ c, rd: renderCached(c.block, { ...ctx, width: c.w }) }));
+    const rendered = row.map((c, i) => ({ c, rd: renderCached(c.block, ctxForCell(ctx, c, i)) }));
     const { offsets, height: h } = rowOffsets(rendered.map((x) => x.rd));
     totalH += h + BLOCK_GAP;
     if (y > 0 && y + h > availH) {
